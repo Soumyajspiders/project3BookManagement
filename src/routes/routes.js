@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const aws= require("aws-sdk")
 const userController = require("../Controllers/userController")
 const bookController = require("../controllers/bookController");
 const reviewController = require("../controllers/reviewController");
@@ -28,7 +29,7 @@ router.get("/books/:bookId", middleware.authentication, bookController.getBooksB
 
 //==================Api for updating books by bookId in path params========//
 
-router.put("/books/:bookId", middleware.authentication, middleware.authorisation, bookController.updateBook);
+router.put("/books/:bookId",  bookController.updateBook);
 
 //Api for deleting books by bookId in path params
 router.delete("/books/:bookId",middleware.authentication,middleware.authorisation,bookController.deleteBook);
@@ -42,6 +43,7 @@ router.put("/books/:bookId/review/:reviewId", reviewController.reviewUpdate);
 //Api for deleting review  by bookId and review id in path params
 router.delete("/books/:bookId/review/:reviewId", reviewController.deleteReview);
 
+router.get("/books", middleware.authentication, bookController.getBooks);
 
 // if api is invalid OR wrong URL
 router.all("/*", function (req, res) {

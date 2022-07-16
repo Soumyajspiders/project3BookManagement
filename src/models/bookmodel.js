@@ -9,6 +9,9 @@ const bookSchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
+    bookCover:{
+        type:String
+    },
     excerpt: {
         type: String,
         required: true,
@@ -33,7 +36,7 @@ const bookSchema = new mongoose.Schema({
     },
     subcategory: {
         type: [String],
-        required: true,
+        // required: true,
         trim: true
     },
     reviews: {

@@ -18,6 +18,8 @@ const createReview = async function (req, res) {
   try {
     //taking data in request body by the user
     const reviewData = req.body;
+    
+
     // if request body is empty
     if (!isValidReqBody(reviewData)) {
       return res
@@ -27,7 +29,8 @@ const createReview = async function (req, res) {
 
     //taking bookId in path params of which user want to review
     const bookId = req.params.bookId;
-
+    let bookDetailes=await bookModel.findById(bookId)
+    console.log(bookDetailes);
     //checking for valid objectId (bookId) given by user i.e. 24 byte
     if (!isValidObjectId(bookId)) {
       return res.status(400).send({
@@ -35,7 +38,7 @@ const createReview = async function (req, res) {
         message: "You are entering invalid bookId. It should be of 24 byte",
       });
     }
-
+    reviewData.bookId=bookId
     //destructuring data of request body
     const { reviewedBy, rating, review } = reviewData;
 
@@ -99,7 +102,6 @@ const createReview = async function (req, res) {
       reviewedAt: releasedDate,
       review: review,
     };
-
     //creating review
     const reviewCreated = await reviewModel.create(responseBody);
 
@@ -112,13 +114,14 @@ const createReview = async function (req, res) {
     res.status(201).send({
       status: true,
       message: "Review created successfully",
-      data: findReviewId,
+      data: findReviewId,bookDetailes
     });
 
     //finding book with bookId and updting its review count
     const udatedBookReview = await bookModel.findOneAndUpdate(
       { _id: bookId },
-      { $inc: { reviews: 1 } }
+      { $inc: { reviews: 1 } },
+      {new:true}
     );
   } catch (err) {
     res.status(500).send({ msg: err.message });
@@ -180,6 +183,11 @@ const reviewUpdate = async function (req, res) {
     }
 
     const { reviewedBy, review, rating } = bodyFromReq;
+    if(!bodyFromReq){
+      return res
+      .status(400)
+      .send({ status: false, msg: "body should not empty" });
+    }
 
     //hasOwnProperty will check if request body has that property or not
     if (bodyFromReq.hasOwnProperty("reviewedBy")) {

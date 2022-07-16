@@ -14,15 +14,15 @@ const authentication = async function (req, res, next) {
       return res.status(400).send({ status: false, msg: "Token required! Please login to generate token" });
     }
 
-    jwt.verify(token, "Group14", { ignoreExpiration: true }, function (error, decodedToken) {
+    jwt.verify(token, "Group21", { ignoreExpiration: true }, function (error, decodedToken) {
       // if token is not valid
       if (error) {
-        return res.status(400).send({ status: false, msg: "Token is invalid!" });
+        return res.status(401).send({ status: false, msg: "Token is invalid!" });
 
         // if token is valid
       } else {
         // checking if token session expired
-        if (Date.now() > decodedToken.exp * 1000) {
+        if (Date.now() > decodedToken.exp * 2000) {
           return res.status(401).send({ status: false, msg: "Session Expired" });
         }
         //exposing decoded token userId in request for everywhere access
@@ -59,7 +59,7 @@ const authorisation = async function (req, res, next) {
     let book = await bookModel.findOne({ _id: bookId }); // database call
     console.log(book);
     if (!book) {
-      return res.status(400).send({
+      return res.status(404).send({
         status: false,
         msg: "We are sorry; Given bookId does not exist!",
       });
@@ -74,7 +74,7 @@ const authorisation = async function (req, res, next) {
 
     // Authorisation: userId in token is compared with userId against bookId
     if (req.userId !== book.userId.toString()) {
-      return res.status(401).send({
+      return res.status(403).send({
         status: false,
         msg: `Authorisation Failed! You are logged in as ${req.userId} not as ${book.userId}`,
       });

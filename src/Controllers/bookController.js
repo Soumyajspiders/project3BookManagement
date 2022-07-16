@@ -10,14 +10,16 @@ const {
 const userModel = require("../models/userModel");
 const reviewModel = require("../models/reviewModel");
 const { default: mongoose } = require("mongoose");
+const uploadFile = require("../controllers/aws");
+
 
 //------------------------------------------------------------------------------------------------------------------------------------------------------
 
 const createBook = async function (req, res) {
   try {
     // book details sent through request body
-    const data = req.body;
-
+    let data = req.body;
+    let files = req.files
     const {
       title,
       excerpt,
@@ -27,8 +29,16 @@ const createBook = async function (req, res) {
       subcategory,
       isDeleted,
       releasedAt,
+      bookCover
     } = data;
-
+    // let uploadFileURL;
+    if (files && files.length > 0) {
+     let  uploadFileURL = await uploadFile.uploadFile(files[0])
+        data.bookCover=uploadFileURL
+    }
+    else{
+        return res.status(400).send({message: "Please add book cover"})
+    }
     // VALIDATIONS:
 
     // if request body is empty
@@ -121,25 +131,25 @@ const createBook = async function (req, res) {
     }
 
      // if subcategory is an array then validating each element
-     if (Array.isArray(subcategory)) {
-      for (let i = 0; i < subcategory.length; i++) {
-        element = subcategory[i];
-        if (!isValid(element)) {
-          return res.status(400).send({
-            status: false,
-            message: 'subcategory is (required field) format like: ["Fiction","Classic"]',
-          });
-        }
-      }
-    }
+    //  if (Array.isArray(subcategory)) {
+    //   for (let i = 0; i < subcategory.length; i++) {
+    //     element = subcategory[i];
+    //     if (!isValid(element)) {
+    //       return res.status(400).send({
+    //         status: false,
+    //         message: 'subcategory is (required field) format like: ["Fiction","Classic"]',
+    //       });
+    //     }
+    //   }
+    // }
 
     // if subcategory is empty
-    if (!isValidSubcategory(subcategory)) {
-      return res.status(400).send({
-        status: false,
-        message: "Please provide the subcategory (required field)",
-      });
-    }
+    // if (!isValidSubcategory(subcategory)) {
+    //   return res.status(400).send({
+    //     status: false,
+    //     message: "Please provide the subcategory (required field)",
+    //   });
+    // }
 
     // if releasedAt is empty
     if (!isValid(releasedAt)) {
@@ -164,12 +174,14 @@ const createBook = async function (req, res) {
       });
     }
 
+ 
+
+
     // if deletedAt is entered
     delete data.deletedAt;
 
     //creating book
     const createdBook = await bookModel.create(data);
-
     // response
     res.status(201).send({
       status: true,
@@ -199,10 +211,10 @@ let getBooksById= async(req,res)=>{
             return res.status(404).send({status:false,message:'Book Not Found'})
         }
         //-------------Check  Reviews----------
-        let reviewsData=await reviewModel.find({_id:bookId,isDeleted:false})
-        let {_id,titel,category,subcategory,excerpt,reviews,updateedAt,createdAt,releasedAt,isDeleted}=checkBook
+        let reviewsData=await reviewModel.find({bookId:bookId,isDeleted:false})
+        let {_id,title,category,subcategory,excerpt,reviews,updateedAt,createdAt,releasedAt,isDeleted}=checkBook
         //------------Send Response------------
-        let data ={_id,titel,category,subcategory,excerpt,reviews,updateedAt,createdAt,releasedAt,isDeleted,reviewsData}
+        let data ={_id,title,category,subcategory,excerpt,reviews,updateedAt,createdAt,releasedAt,isDeleted,reviewsData}
         return res.status(200).send({status:true,message:'Book list',data:data})
     } catch (error) {
         return res.status(500).send({status:false,message:error.message})
@@ -239,7 +251,7 @@ const updateBook = async function (req, res) {
         if (!isValid(title)) {
           return res
             .status(400)
-            .send({ status: false, message: "title is not valid!" });
+            .send({ status: false, message: "title is not valid!,it should contain only letters" });
         }
         // title duplication check
         const isPresentTitle = await bookModel.findOne({ title: title });
@@ -340,6 +352,94 @@ const updateBook = async function (req, res) {
       });
     }
   };
+
+//=================[Getbook]=====================================**************************===============
+
+  let getBooks = async function (req, res) {
+    try {
+      //taking filter in query params
+      let userQuery = req.query;
+  
+      //filtering the deleted data
+      let filter = {
+        isDeleted: false,
+      };
+  
+      //checking if there is no filter in query params
+      // if (!isValidReqBody(userQuery)) {
+      //   return res.status(400).send({
+      //     status: true,
+      //     message: " Invalid parameters, please provide valid data",
+      //   });
+      // }
+  
+      //sending filter through query params
+      const { userId, category, subcategory } = userQuery;
+  
+      //userId given by the user
+      if (userId) {
+        //checking for if userId if not valid
+        if (!isValidObjectId(userId)) {
+          return res
+            .status(400)
+            .send({ status: false, message: "Invalid userId" });
+        }
+  
+        //if userId is valid
+        if (isValid(userId)) {
+          filter["userId"] = userId;
+        }
+      }
+  
+      //checking for if category is valid
+      if (isValid(category)) {
+        filter["category"] = category.trim();
+      }
+  
+      //checking subcategory value for valid format (i.e.array of string in model)
+      if (subcategory) {
+        const subCategoryArray = subcategory
+          .trim()
+          .split(",")
+          .map((s) => s.trim());
+        filter["subcategory"] = { $all: subCategoryArray };
+      }
+  
+      //finding books according to the query given by the user in query params
+      let findBook = await bookModel.find(filter).select({
+        title: 1,
+        book_id: 1,
+        excerpt: 1,
+        userId: 1,
+        category: 1,
+        releasedAt: 1,
+        reviews: 1,
+      });
+  
+      //console.log(findBook);
+  
+      //checking is the findbook is an array and if its length is zero , means empty array
+      if (Array.isArray(findBook) && findBook.length === 0) {
+        return res
+          .status(404)
+          .send({ status: false, message: "Books Not Found" });
+      }
+  
+      //Sorting of data of araay(findbook) by the title value
+      const sortedBooks = findBook.sort((a, b) => a.title.localeCompare(b.title));
+  
+      //sending response of sortedBooks
+      res
+        .status(200)
+        .send({ status: true, message: "Books list", data: sortedBooks });
+    } catch (err) {
+      res.status(500).send({
+        status: false,
+        message: "Internal Server Error",
+        error: err.message,
+      });
+    }
+  };
   
 
-module.exports={createBook,getBooksById,updateBook,deleteBook}
+module.exports={createBook,getBooksById,updateBook,deleteBook,getBooks}

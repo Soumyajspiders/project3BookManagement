@@ -12,6 +12,7 @@ const isValidReqBody = function (reqbody) {
 const isValid = function (value) {
   if (typeof value === "undefined" || typeof value === null) return false;
   if (typeof value === "string" && value.trim().length == 0) return false;
+  // if (!/^\w[a-zA-Z.]*$/.test(value))return false
   if (typeof value === "string") return true;
 };
 

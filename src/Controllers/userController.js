@@ -173,7 +173,7 @@ const loginUser = async function (req, res) {
     let password = req.body.password;
 
     // if email is empty
-    if (isValid(email) === false) {
+    if (isValidEmail(email) === false) {
       return res.status(400).send({
         status: false,
         message: "Please enter email!",
@@ -181,7 +181,7 @@ const loginUser = async function (req, res) {
     }
 
     // if password is empty
-    if (isValid(password) === false) {
+    if (isValidPassword(password) === false) {
       return res.status(400).send({
         status: false,
         message: "Please enter password!",
@@ -207,7 +207,7 @@ const loginUser = async function (req, res) {
         email: loginCredentials.email.toString(),
         userId: loginCredentials._id,
       },
-      "Group14",
+      "Group21",
       {
         expiresIn: "24h",
       }
